@@ -11,8 +11,8 @@ android {
         applicationId = "ru.indexon.pinakes"
         minSdk = 30
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.15"
+        versionCode = 17
+        versionName = "0.17"
     }
 
     buildTypes {

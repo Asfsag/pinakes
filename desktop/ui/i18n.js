@@ -219,6 +219,13 @@ const I18N = (() => {
  "нет папки полки": "no shelf folder",
  "книга не создана": "book not created",
  "нет такого запроса": "no such request",
+ "Поиск": "Search",
+ "Поиск по книге": "Search in book",
+ "Поиск по книге: слово или фраза": "Search in book: a word or phrase",
+ "Назад": "Previous",
+ "Далее": "Next",
+ "Закрыть": "Close",
+ "Введите хотя бы два символа": "Type at least two characters",
  "Пинакес": "Pinakes"
 };
   let lang = 'ru';

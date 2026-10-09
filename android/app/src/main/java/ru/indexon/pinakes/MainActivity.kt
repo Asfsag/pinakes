@@ -15,6 +15,11 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONArray
 import org.json.JSONObject
@@ -46,6 +51,17 @@ class MainActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        /** Читалка на весь экран: системные панели прячутся (появляются по свайпу от края), фон под вырезом камеры — цвет страницы. */
+        @JavascriptInterface
+        fun immersive(on: Boolean, color: String) {
+            runOnUiThread {
+                try { window.decorView.setBackgroundColor(android.graphics.Color.parseColor(color)) } catch (_: Exception) {}
+                val c = WindowCompat.getInsetsController(window, web)
+                if (on) { c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE; c.hide(WindowInsetsCompat.Type.systemBars()) }
+                else c.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+
         @JavascriptInterface
         fun call(name: String, args: String): String = try {
             JSONObject().put("result", run(name, JSONObject(if (args.isEmpty()) "{}" else args))).toString()
@@ -102,7 +118,11 @@ class MainActivity : ComponentActivity() {
             addJavascriptInterface(Bridge(), "AndroidBridge")
         }
         setContentView(web)
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowCompat.setDecorFitsSystemWindows(window, false)                 // рисуем под системными панелями и вырезом камеры
+        ViewCompat.setOnApplyWindowInsetsListener(web) { v, insets ->         // отступы = видимые панели и вырез: без панелей текст занимает весь экран
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()); val cut = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val i = Insets.max(bars, cut); v.setPadding(i.left, i.top, i.right, i.bottom); WindowInsetsCompat.CONSUMED
+        }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 web.evaluateJavascript("window.__back && window.__back()") { r -> if (r != "true") { isEnabled = false; onBackPressedDispatcher.onBackPressed() } }

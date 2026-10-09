@@ -62,12 +62,18 @@
       <button class="rb" id="rclose" title="Закрыть (Esc)">← На полку</button>
       <div class="rtitle" id="rtitle"></div>
       <div class="rtools">
+        <button class="rb hide" id="rfind" title="Поиск по книге">Поиск</button>
         <button class="rb" id="rtoc" title="Оглавление">Оглавление</button>
         <button class="rb" id="rset" title="Настройки чтения">Аа</button>
         <button class="rb" id="rdl" title="Скачать эту книгу">Скачать</button>
       </div>
     </div>
     <div class="toc hide" id="toc"></div>
+    <div class="rsearch hide" id="rsearch">
+      <div class="rs-top"><input id="rsq" type="search" placeholder="Поиск по книге: слово или фраза" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="rb" id="rsprev">Назад</button><button class="rb" id="rsnext">Далее</button><button class="rb" id="rsclose">Закрыть</button></div>
+      <div class="rs-info" id="rsinfo"></div>
+      <div class="rs-list hide" id="rslist"></div>
+    </div>
     <div class="rfoot" id="rfoot"><input type="range" id="rslider" min="0" max="1000" value="0" aria-label="Место в книге"><span id="rpct"></span></div>
     <div class="rsheet hide" id="rsheet"></div>
   </div>

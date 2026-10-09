@@ -12,10 +12,11 @@ An app for people who read a lot and want their library to look like a real book
 - **EPUB, FB2 (including fb2.zip) and PDF.** One book in several formats is merged into a single card, even when the author or title is spelled differently. The same file is never added twice.
 - **Opening animation.** The book slides off the shelf, the cover opens, pages with the book's own text flip by, and the card appears.
 - **A reader** with its own engine for EPUB and FB2:
-  - a two-page spread on wide screens, a full-width single page on narrow ones;
+  - a two-page spread on wide screens (desktop, tablets, a phone held sideways), a full-width single page on narrow ones; on Android the reader goes full screen (system bars hidden, swipe from the edge to bring them back);
   - a "Page" mode with a real page fold that follows your finger or mouse, plus Scroll, Slide, Card, Fade and No animation;
   - Day, Sepia, Graphite and Night themes; font, size, line spacing, margins, alignment, dimming;
-  - table of contents, footnotes in a popup, remembered position.
+  - table of contents, footnotes in a popup, remembered position;
+  - **search inside the book**: words and phrases, a list of matches with context, jump to the page and highlighting of every match.
 - **FB2 ⇄ EPUB converter.** One click in the card, or in bulk for the whole shelf, with no external tools.
 - **Export the whole library** in one format to a folder you choose, handy when moving to an e-reader.
 - **Sounds:** a soft page-turn sound while reading and a page-flipping sound when a book opens. Both can be switched off in the "⋯" menu or in the reading settings.

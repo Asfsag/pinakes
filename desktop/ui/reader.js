@@ -22,11 +22,15 @@ const Reader = (() => {
   const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
   const div = c => { const d = document.createElement('div'); d.className = c; return d; };
 
+  // Android: читалка на весь экран (системные панели прячутся), фон под вырезом камеры — цвет страницы
+  let sysColor = '';
+  const sysUi = on => { try { const col = on ? THEMES[set.theme][1] : '#0d0906'; if (window.AndroidBridge && AndroidBridge.immersive && (col !== sysColor || !on)) { sysColor = on ? col : ''; AndroidBridge.immersive(!!on, col); } } catch {} };
   function applyVars() {
     Object.keys(THEMES).forEach(t => el.root.classList.toggle('t-' + t, t === set.theme));
     const s = el.root.style; s.setProperty('--fs', set.fs + 'px'); s.setProperty('--lh', String(set.lh)); s.setProperty('--rf', FONTS[set.font][1]); s.setProperty('--ta', set.align === 'justify' ? 'justify' : 'left');
     s.setProperty('--paper', THEMES[set.theme][1]); s.setProperty('--ink', THEMES[set.theme][2]);
     el.dim.style.opacity = String(set.dim / 100);
+    if (!el.root.classList.contains('hide')) sysUi(true);
   }
   function save(k, v) { set[k] = v; store.set('pin_' + k, v); }
 
@@ -40,6 +44,7 @@ const Reader = (() => {
     cur = { book, fmt, onProgress: hooks && hooks.onProgress };
     el.title.textContent = book.title + (book.author ? ' — ' + book.author : '');
     el.stage.innerHTML = '<div class="loading">Открываю…</div>';
+    $('#rfind').classList.add('hide'); $('#rsearch').classList.add('hide'); try { CSS.highlights.delete('pin-find'); } catch {}
     el.toc.classList.add('hide'); el.toc.innerHTML = ''; el.sheet.classList.add('hide'); el.slider.value = 0; el.pct.textContent = '';
     el.root.classList.remove('hide', 'nochrome'); applyVars();
     try {
@@ -80,7 +85,7 @@ const Reader = (() => {
     el.stage.innerHTML = ''; el.stage.appendChild(rd);
     const measure = $('.measure', rd), pb = $('.pagebox', rd), sb = $('.scrollbox', rd), pop = $('.notepop', rd);
     const st = { c: 0, p: 0, pages: 1, W: 0, H: 0, view: null, busy: false, cache: new Map(), mode: '', sumLen: 0, sumPages: 0, counted: new Set() };
-    const TOP = 56, BOT = 48;
+    let TOP = 56, BOT = 48;
     const noteText = id => { const n = root.querySelector('#note-' + CSS.escape(id)); return n ? n.textContent.trim() : ''; };
     const gfOf = () => {
       if (st.mode === 'scroll') { const m = sb.scrollHeight - sb.clientHeight; return m > 0 ? clamp(sb.scrollTop / m) : 0; }
@@ -89,10 +94,14 @@ const Reader = (() => {
 
     function layout() {
       const sw = el.stage.clientWidth, sh = el.stage.clientHeight;
-      st.spread = sw >= 980 && sw / sh > 1.15;                                // на широком экране — разворот из двух страниц
+      st.lw = sw; st.lh = sh;
+      st.spread = sw >= 640 && sw / sh > 1.15;                                // на широком экране (компьютер, планшет, телефон в альбомной) — разворот из двух страниц
+      const short = sh < 520; TOP = short ? 22 : 56; BOT = short ? 26 : 48;   // на низком экране (телефон лёжа) поля сверху и снизу меньше
       const big = sw > 700;
-      const pad = st.spread ? { narrow: 30, mid: 46, wide: 72 }[set.mar] : big ? { narrow: 17, mid: 36, wide: 64 }[set.mar] : { narrow: 8, mid: 14, wide: 26 }[set.mar];
-      st.pw = st.spread ? Math.min(Math.floor((sw - 40) / 2), 700) : big ? Math.min(sw, 780 + pad * 2) : sw;   // страница — на всю ширину на телефоне
+      st.pw = st.spread ? Math.min(Math.floor((sw - (short ? 16 : 40)) / 2), 700) : big ? Math.min(sw, 780 + 72) : sw;
+      const roomy = st.spread ? st.pw >= 560 : big;
+      const pad = st.spread ? (roomy ? { narrow: 30, mid: 46, wide: 72 } : { narrow: 10, mid: 18, wide: 30 })[set.mar] : big ? { narrow: 17, mid: 36, wide: 64 }[set.mar] : { narrow: 8, mid: 14, wide: 26 }[set.mar];
+      if (!st.spread && big) st.pw = Math.min(sw, 780 + pad * 2);
       st.W = st.spread ? st.pw * 2 : st.pw; st.H = sh; st.pad = pad;
       st.fw = Math.max(160, st.pw - pad * 2); st.fh = Math.max(240, sh - TOP - BOT);
       pb.style.cssText = `left:${Math.round((sw - st.W) / 2)}px;top:0;width:${st.W}px;height:${st.H}px`;
@@ -266,9 +275,92 @@ const Reader = (() => {
     el.toc.innerHTML = ''; toc.forEach(t => { const a = document.createElement('a'); a.textContent = t.label; if (t.lvl > 1) a.className = 'l2'; a.onclick = () => { gotoId(t.id); el.toc.classList.add('hide'); }; el.toc.appendChild(a); });
     cur.relayout = relayout; cur.next = () => go(1); cur.prev = () => go(-1); cur.goto = gf => gotoGF(gf);
     cur.applyTheme = () => applyVars();
+
+    // ---------- поиск по книге ----------
+    const nz = s => s.toLowerCase().replace(/ё/g, 'е');                       // длина не меняется, смещения совпадают с исходным текстом
+    const rawT = [], normT = [];
+    const brk = [];                                                            // границы абзацев внутри текста главы (для превью результатов)
+    const rawOf = c => rawT[c] != null ? rawT[c] : (rawT[c] = (() => {
+      const d = document.createElement('div'); d.innerHTML = chunks[c].html; const w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT); let acc = 0, prev = null, n, out = '', bs = [];
+      while ((n = w.nextNode())) { if (prev && prev.parentNode !== n.parentNode && n.nodeValue.length) bs.push(acc); out += n.nodeValue; acc += n.nodeValue.length; prev = n; }
+      brk[c] = bs; return out;
+    })());
+    const snip = (c, a, b) => { const t = rawOf(c); let s = '', p = a; for (const o of brk[c]) { if (o <= a || o >= b) continue; s += t.slice(p, o) + ' '; p = o; } return s + t.slice(p, b); };
+    const normOf = c => normT[c] != null ? normT[c] : (normT[c] = nz(rawOf(c)));
+    const cumRaw = []; const cumAt = c => { if (!cumRaw.length) { let a = 0; for (let i = 0; i < chunks.length; i++) { cumRaw[i] = a; a += rawOf(i).length; } } return cumRaw[c]; };
+    const reOf = q => { const w = q.trim().split(/\s+/).filter(Boolean).map(x => nz(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); return w.length ? new RegExp(w.join('\\s+'), 'g') : null; };
+    const S2 = { q: '', res: [], idx: -1 };
+    const qEl = $('#rsq'), infoEl = $('#rsinfo'), listEl = $('#rslist'), panel = $('#rsearch');
+    function runSearch(q) {
+      S2.q = q.trim(); S2.res = []; S2.idx = -1; listEl.innerHTML = '';
+      if (S2.q.length < 2) { infoEl.textContent = S2.q ? 'Введите хотя бы два символа' : ''; applyHL(); return; }
+      const re = reOf(S2.q); let more = false;
+      outer: for (let c = 0; c < chunks.length; c++) {
+        const t = normOf(c); re.lastIndex = 0; let m;
+        while ((m = re.exec(t))) { if (!m[0].length) { re.lastIndex++; continue; } S2.res.push({ c, off: m.index, len: m[0].length }); if (S2.res.length >= 300) { more = true; break outer; } }
+      }
+      if (!S2.res.length) { infoEl.textContent = 'Ничего не найдено'; applyHL(); return; }
+      const esc2 = s => s.replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
+      listEl.innerHTML = S2.res.map((r, i) => {
+        const t = rawOf(r.c), a = Math.max(0, r.off - 34), b = Math.min(t.length, r.off + r.len + 52);
+        const pre = snip(r.c, a, r.off).replace(/\s+/g, ' '), hit = t.slice(r.off, r.off + r.len).replace(/\s+/g, ' '), post = snip(r.c, r.off + r.len, b).replace(/\s+/g, ' ');
+        return `<button class="rs-item" data-i="${i}"><b>${Math.round((cumAt(r.c) + r.off) / total * 100)}%</b><span>${a > 0 ? '… ' : ''}${esc2(pre)}<mark>${esc2(hit)}</mark>${esc2(post)}${b < t.length ? ' …' : ''}</span></button>`;
+      }).join('');
+      infoEl.textContent = 'Найдено: ' + S2.res.length + (more ? '+' : '');
+      listEl.classList.remove('hide'); applyHL();
+      $$('.rs-item', listEl).forEach(b => b.onclick = () => { jump(+b.dataset.i); listEl.classList.add('hide'); qEl.blur(); });
+    }
+    // подсветка найденного на показанных страницах (CSS Custom Highlight)
+    function applyHL() {
+      if (!window.CSS || !CSS.highlights || typeof Highlight === 'undefined') return;
+      if (!S2.q || S2.q.length < 2) { CSS.highlights.delete('pin-find'); return; }
+      const re = reOf(S2.q), ranges = [];
+      const holders = st.mode === 'scroll' ? [root] : $$('.flow', pb);
+      for (const h of holders) {
+        const t = nz(h.textContent), nodes = [], w = document.createTreeWalker(h, NodeFilter.SHOW_TEXT); let acc = 0, n;
+        while ((n = w.nextNode())) { nodes.push([n, acc]); acc += n.nodeValue.length; }
+        re.lastIndex = 0; let m, cnt = 0;
+        while ((m = re.exec(t)) && cnt < 500) {
+          if (!m[0].length) { re.lastIndex++; continue; } cnt++;
+          const s = m.index, e = s + m[0].length; let i = 0; while (i + 1 < nodes.length && nodes[i + 1][1] <= s) i++;
+          let j = i; while (j + 1 < nodes.length && nodes[j + 1][1] < e) j++;
+          try { const rg = new Range(); rg.setStart(nodes[i][0], s - nodes[i][1]); rg.setEnd(nodes[j][0], e - nodes[j][1]); ranges.push(rg); } catch {}
+        }
+      }
+      CSS.highlights.set('pin-find', new Highlight(...ranges));
+    }
+    new MutationObserver(() => { if (S2.q) requestAnimationFrame(applyHL); }).observe(pb, { childList: true });
+    // переход к найденному: на нужную страницу (или прокрутка в режиме «Лента»)
+    function jump(i) {
+      if (i < 0 || i >= S2.res.length) return; S2.idx = i; const r = S2.res[i];
+      $$('.rs-item', listEl).forEach(b => b.classList.toggle('on', +b.dataset.i === i));
+      infoEl.textContent = 'Найдено: ' + S2.res.length + ' · № ' + (i + 1);
+      const locate = (host, off) => { const w = document.createTreeWalker(host, NodeFilter.SHOW_TEXT); let acc = 0, n; while ((n = w.nextNode())) { const l = n.nodeValue.length; if (off < acc + l) { const rg = new Range(); rg.setStart(n, Math.max(0, off - acc)); rg.collapse(true); return rg; } acc += l; } return null; };
+      if (st.mode === 'scroll') {
+        const rg = locate(root, cumAt(r.c) + r.off); if (rg) { const bb = rg.getBoundingClientRect(), sr = sb.getBoundingClientRect(); sb.scrollTop += bb.top - sr.top - 120; }
+        applyHL(); return;
+      }
+      const f = flowEl(r.c); measure.appendChild(f);
+      const rg = locate(f, r.off); let page = 0;
+      if (rg) { const bb = rg.getBoundingClientRect(), fb = f.getBoundingClientRect(); page = Math.floor((bb.left - fb.left + 1) / st.fw); }
+      measure.removeChild(f); show(r.c, clamp(page, 0, pagesOf(r.c) - 1)); applyHL();
+    }
+    let sT = 0; qEl.oninput = () => { clearTimeout(sT); sT = setTimeout(() => runSearch(qEl.value), 300); };
+    qEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(sT); if (qEl.value.trim() !== S2.q) runSearch(qEl.value); if (S2.res.length) jump((S2.idx + (e.shiftKey ? -1 : 1) + S2.res.length) % S2.res.length); } else if (e.key === 'Escape') { panel.classList.add('hide'); qEl.blur(); e.stopPropagation(); } };
+    $('#rsnext').onclick = () => { if (S2.res.length) jump((S2.idx + 1) % S2.res.length); };
+    $('#rsprev').onclick = () => { if (S2.res.length) jump((S2.idx - 1 + S2.res.length) % S2.res.length); };
+    $('#rsclose').onclick = () => { panel.classList.add('hide'); qEl.blur(); };
+    infoEl.onclick = () => { if (S2.res.length) listEl.classList.toggle('hide'); };
+    cur.openSearch = () => { el.toc.classList.add('hide'); el.sheet.classList.add('hide'); panel.classList.remove('hide'); if (S2.res.length && !listEl.children.length) runSearch(S2.q); qEl.focus(); qEl.select(); };
+    cur.closeSearch = () => { panel.classList.add('hide'); };
+    cur.clearSearch = () => { S2.q = ''; S2.res = []; try { CSS.highlights.delete('pin-find'); } catch {} };
+    qEl.value = ''; infoEl.textContent = ''; listEl.innerHTML = ''; listEl.classList.add('hide'); panel.classList.add('hide'); $('#rfind').classList.remove('hide');
     cur.onSettings = k => { if (k === 'mode') { const gf = gfOf(); enter(gf); } else if (['font', 'fs', 'lh', 'mar', 'align'].includes(k)) relayout(); else applyVars(); };
-    const ro = new ResizeObserver(() => { if (cur && cur.relayout && Math.abs(el.stage.clientWidth - (st.sw || 0)) + Math.abs(el.stage.clientHeight - (st.sh || 0)) > 2) { st.sw = el.stage.clientWidth; st.sh = el.stage.clientHeight; relayout(); } }); ro.observe(el.stage);
-    cur.destroy = () => { try { ro.disconnect(); } catch {} clearTimeout(rt); };
+    const ro = new ResizeObserver(() => { if (document.activeElement && document.activeElement.id === 'rsq') return; if (cur && cur.relayout && Math.abs(el.stage.clientWidth - (st.sw || 0)) + Math.abs(el.stage.clientHeight - (st.sh || 0)) > 2) { st.sw = el.stage.clientWidth; st.sh = el.stage.clientHeight; relayout(); } }); ro.observe(el.stage);
+    // страховка: после поворота экрана и скрытия системных панелей размер мог измениться без уведомления — сверяем и перестраиваем
+    const chk = () => { if (!cur || !cur.relayout || st.busy || (document.activeElement && document.activeElement.id === 'rsq')) return; if (Math.abs(el.stage.clientWidth - (st.lw || 0)) + Math.abs(el.stage.clientHeight - (st.lh || 0)) > 2) relayout(); };
+    const chkT = setInterval(chk, 600); window.addEventListener('resize', chk);
+    cur.destroy = () => { try { ro.disconnect(); } catch {} clearTimeout(rt); clearInterval(chkT); window.removeEventListener('resize', chk); };
 
     // стартовая позиция: сохранённая (доля книги), иначе начало
     const pr = cur.book.progress; const start = pr && pr.percent && pr.fmt === cur.fmt ? clamp(pr.percent) : 0;
@@ -363,21 +455,23 @@ const Reader = (() => {
   function close(silent) {
     if (!cur) { if (!silent) el.root.classList.add('hide'); return; }
     try { cur.destroy && cur.destroy(); } catch {}
-    cur = null; el.stage.innerHTML = ''; el.sheet.classList.add('hide');
-    if (!silent) el.root.classList.add('hide');
+    cur = null; el.stage.innerHTML = ''; el.sheet.classList.add('hide'); $('#rsearch').classList.add('hide'); try { CSS.highlights.delete('pin-find'); } catch {}
+    if (!silent) { el.root.classList.add('hide'); sysUi(false); }
   }
   const isOpen = () => !el.root.classList.contains('hide');
   // кнопка «Назад» / Esc: закрывает по очереди настройки, оглавление, читалку; true — если что-то закрыли
   function back() {
     if (!isOpen()) return false;
+    if (!$('#rsearch').classList.contains('hide')) { $('#rsearch').classList.add('hide'); return true; }
     if (!el.sheet.classList.contains('hide')) { el.sheet.classList.add('hide'); return true; }
     if (!el.toc.classList.contains('hide')) { el.toc.classList.add('hide'); return true; }
     close(); return true;
   }
 
   $('#rclose').onclick = () => { close(); };
-  $('#rtoc').onclick = () => { el.sheet.classList.add('hide'); if (el.toc.children.length) el.toc.classList.toggle('hide'); else toast('В этой книге нет оглавления'); };
-  $('#rset').onclick = () => { el.toc.classList.add('hide'); if (el.sheet.classList.contains('hide')) { buildSheet(); el.sheet.classList.remove('hide'); } else el.sheet.classList.add('hide'); };
+  $('#rfind').onclick = () => { if (cur && cur.openSearch) { if ($('#rsearch').classList.contains('hide')) cur.openSearch(); else cur.closeSearch(); } };
+  $('#rtoc').onclick = () => { $('#rsearch').classList.add('hide'); el.sheet.classList.add('hide'); if (el.toc.children.length) el.toc.classList.toggle('hide'); else toast('В этой книге нет оглавления'); };
+  $('#rset').onclick = () => { $('#rsearch').classList.add('hide'); el.toc.classList.add('hide'); if (el.sheet.classList.contains('hide')) { buildSheet(); el.sheet.classList.remove('hide'); } else el.sheet.classList.add('hide'); };
   el.slider.addEventListener('input', () => { el.pct.textContent = Math.round(el.slider.value / 10) + '%'; });
   el.slider.addEventListener('change', () => { if (cur && cur.goto) cur.goto(el.slider.value / 1000); });
   document.addEventListener('keydown', e => {
