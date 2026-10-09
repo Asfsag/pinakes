@@ -125,3 +125,16 @@ function makeFold(W, H, ox, frontEl, backEl) {
   set(0);
   return { under, front, flap, set };
 }
+
+// ---------- звуки (открытие книги, перелистывание) ----------
+const Snd = (() => {
+  const on = () => { try { return localStorage.getItem('pin_sound') !== '0'; } catch { return true; } };
+  const cache = {};
+  const base = name => cache[name] || (cache[name] = Object.assign(new Audio('sounds/' + name + '.mp3'), { preload: 'auto' }));
+  return {
+    get on() { return on(); },
+    set(v) { try { localStorage.setItem('pin_sound', v ? '1' : '0'); } catch {} },
+    play(name, o = {}) { if (!on()) return null; try { const a = base(name).cloneNode(); a.volume = o.vol == null ? 0.8 : o.vol; a.playbackRate = o.rate || 1; a.play().catch(() => {}); return a; } catch { return null; } },
+    warm() { try { base('flip'); base('open'); } catch {} },
+  };
+})();

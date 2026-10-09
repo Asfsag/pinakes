@@ -203,6 +203,7 @@ const Reader = (() => {
       if (st.busy) return;
       if (st.mode === 'scroll') { sb.scrollBy({ top: dir * sb.clientHeight * 0.88, behavior: 'smooth' }); return; }
       const T = beginTurn(dir); if (!T) { toast(dir > 0 ? 'Это конец книги' : 'Это начало книги', 1600); return; }
+      if (set.mode === 'flip') Snd.play('flip');
       st.busy = true; await tween(T, 0, 1, DUR[set.mode]); T.commit(); endTurn(T);
     }
 
@@ -229,7 +230,7 @@ const Reader = (() => {
     const release = async e => {
       if (!drag || (e && e.pointerId !== drag.id)) return; const d = drag; drag = null;
       if (d.T) {
-        const done = d.p > .3 || d.v > .0016; await tween(d.T, d.p, done ? 1 : 0, Math.max(120, (done ? 1 - d.p : d.p) * DUR[set.mode] * 1.2));
+        const done = d.p > .3 || d.v > .0016; if (done && set.mode === 'flip') Snd.play('flip'); await tween(d.T, d.p, done ? 1 : 0, Math.max(120, (done ? 1 - d.p : d.p) * DUR[set.mode] * 1.2));
         if (done) { d.T.commit(); endTurn(d.T); } else { d.T.cancel(); st.busy = false; pb.style.overflow = ''; }
       } else if (!d.fail && e) {
         const a = d.a && d.a.closest ? d.a.closest('a[data-note]') : null;
@@ -346,9 +347,11 @@ const Reader = (() => {
       <h4>Межстрочный интервал</h4><div class="row2"><input type="range" min="1.2" max="2.2" step="0.05" value="${set.lh}" data-r="lh"><span id="v-lh">${set.lh.toFixed(2)}</span></div>
       <h4>Поля</h4><div class="chips">${chips('mar', MARGINS, set.mar)}</div>
       <h4>Выравнивание</h4><div class="chips">${chips('align', { justify: 'По ширине', left: 'По левому краю' }, set.align)}</div>`}
+      <h4>Звук перелистывания</h4><div class="chips"><button class="ch ${Snd.on ? 'on' : ''}" data-snd="1">Включён</button><button class="ch ${Snd.on ? '' : 'on'}" data-snd="0">Выключен</button></div>
       <h4>Яркость (затемнение)</h4><div class="row2"><input type="range" min="0" max="60" step="2" value="${set.dim}" data-r="dim"><span id="v-dim">${set.dim}%</span></div>
       <button class="close" id="rsclose">Готово</button>`;
     $$('[data-k]', el.sheet).forEach(b => b.onclick = () => { const k = b.dataset.k, v = b.dataset.v; save(k, v); $$(`[data-k="${k}"]`, el.sheet).forEach(x => x.classList.toggle('on', x.dataset.v === v)); if (cur && cur.onSettings) cur.onSettings(k); else applyVars(); });
+    $$('[data-snd]', el.sheet).forEach(b => b.onclick = () => { Snd.set(b.dataset.snd === '1'); $$('[data-snd]', el.sheet).forEach(x => x.classList.toggle('on', x === b)); if (b.dataset.snd === '1') Snd.play('flip'); });
     $$('[data-r]', el.sheet).forEach(r => r.oninput = () => {
       const k = r.dataset.r, v = parseFloat(r.value); save(k, v); const lab = $('#v-' + k, el.sheet); if (lab) lab.textContent = k === 'lh' ? v.toFixed(2) : k === 'dim' ? v + '%' : v;
       if (k === 'dim') applyVars(); else if (cur && cur.onSettings) cur.onSettings(k);

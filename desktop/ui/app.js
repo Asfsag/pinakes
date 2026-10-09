@@ -247,7 +247,7 @@ function samplePage(text, n, W, H) {
   d.innerHTML = cut.split('\n').map(x => `<p style="margin:0;text-indent:1.4em">${esc(x)}</p>`).join('');
   return d;
 }
-let bkAnims = [];
+let bkAnims = [], openSnd = null, openSndT = 0;
 function mountSpread(leftHtml, rightHtml, srcEl) {
   const modal = $('#detail'), st = $('#dsheet'), phone = innerWidth < 720, vw = innerWidth, vh = innerHeight;
   const b = S.books.find(x => x.id === (S.openId || ''));       // обложка для закрытой книги (S.openId ставит вызывающий код ниже)
@@ -288,13 +288,15 @@ function mountSpread(leftHtml, rightHtml, srcEl) {
   folds.forEach(f => leavesBox.append(f.flap));                               // перевёрнутые ложатся стопкой: последний сверху
   const place = (i, tt) => folds[i].set(tt < .5 ? 2 * tt * tt : 1 - Math.pow(-2 * tt + 2, 2) / 2, true);
   const t0 = performance.now(); let raf = 0, finished = false;
+  clearTimeout(openSndT); if (openSnd) { try { openSnd.pause(); } catch {} openSnd = null; }
+  openSndT = setTimeout(() => { openSnd = Snd.play('open', { rate: 1.3 }); }, Math.max(0, t3 - 60));
   const drive = now => {
     const el = now - t0 - t3; let allDone = true;
     for (let i = 0; i < N; i++) { const tt = Math.min(1, Math.max(0, (el - i * T.gap) / T.flip)); place(i, tt); if (tt < 1) allDone = false; }
     if (!allDone && !finished) raf = requestAnimationFrame(drive);
   };
   raf = requestAnimationFrame(drive);
-  const finishLeaves = () => { finished = true; cancelAnimationFrame(raf); folds.forEach((_, i) => place(i, 1)); };
+  const finishLeaves = () => { if (openSnd) { try { openSnd.pause(); } catch {} } clearTimeout(openSndT); finished = true; cancelAnimationFrame(raf); folds.forEach((_, i) => place(i, 1)); };
   // 4) листы и обложка убираются, содержимое страниц проявляется
   push(leavesBox.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, delay: tEnd, fill: 'both', easing: 'ease-out' }));
   ins.forEach(el => push(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: tEnd, fill: 'both', easing: 'ease-out' })));
@@ -455,6 +457,12 @@ $('#mAll').onclick = () => {
     } catch (e) { toast('Не удалось выгрузить: ' + (e.message || e)); }
   };
 };
+$('#mLang').textContent = I18N.lang === 'ru' ? 'Language: switch to English' : 'Язык: переключить на русский';
+$('#mLang').onclick = () => { I18N.set(I18N.lang === 'ru' ? 'en' : 'ru'); location.reload(); };
+I18N.start(); if (pin.setLang) pin.setLang(I18N.lang);
+const syncSoundBtn = () => { $('#mSound').textContent = Snd.on ? 'Звуки: включены' : 'Звуки: выключены'; };
+syncSoundBtn(); Snd.warm();
+$('#mSound').onclick = () => { Snd.set(!Snd.on); syncSoundBtn(); if (Snd.on) Snd.play('flip'); };
 $('#mOpen').onclick = () => pin.revealRoot();
 $('#mRoot').onclick = chooseRoot;
 ['detail', 'dl', 'edit'].forEach(id => $('#' + id).addEventListener('click', e => { if (e.target.id === id) $('#' + id).classList.add('hide'); }));

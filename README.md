@@ -4,7 +4,7 @@
 
 An app for people who read a lot and want their library to look like a real bookcase: dark wood, brass, spines with titles. Your books live in an ordinary folder on your computer and nothing is sent to the internet.
 
-![Bookshelf](assets/shelf.png)
+![Bookshelf](assets/en-shelf.png)
 
 ## Features
 
@@ -18,11 +18,13 @@ An app for people who read a lot and want their library to look like a real book
   - table of contents, footnotes in a popup, remembered position.
 - **FB2 ⇄ EPUB converter.** One click in the card, or in bulk for the whole shelf, with no external tools.
 - **Export the whole library** in one format to a folder you choose, handy when moving to an e-reader.
+- **Sounds:** a soft page-turn sound while reading and a page-flipping sound when a book opens. Both can be switched off in the "⋯" menu or in the reading settings.
+- **Two languages:** Russian and English interface, switch in the "⋯" menu. The language follows your system by default.
 - **An Android version** (APK) with the same shelf and reader.
 
-![Book card](assets/book-card.png)
-![Reader spread](assets/reader-spread.png)
-![Page turn](assets/page-turn.png)
+![Book card](assets/en-card.png)
+![Reader spread](assets/en-reader.png)
+![Page turn](assets/en-turn.png)
 
 ## Install
 
@@ -69,6 +71,6 @@ cd android
 
 ## License
 
-[MIT](LICENSE). Author: [Индексон / Indexon](https://index-on.ru). The Cormorant Garamond and Onest fonts are under the SIL OFL; pdf.js is Apache-2.0.
+[MIT](LICENSE). Author: [Индексон / Indexon](https://index-on.ru). The Cormorant Garamond and Onest fonts are under the SIL OFL; pdf.js is Apache-2.0. Demo screenshots use public-domain books.
 
 Books you add stay on your computer. The app does not upload them and collects no data.

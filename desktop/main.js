@@ -11,6 +11,11 @@ const SHELF_DIR = '3. Пинакес — моя книжная полка';
 const LIB_DIR = 'Александрийская библиотека';
 if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox'); // Ubuntu 24+: без этого окно может не открыться
 let win;
+// язык диалогов ОС: интерфейс сообщает выбранный язык
+let LANG = 'ru';
+const EN_MAIN = {"Папка для книжной полки": "Folder for the bookshelf", "Добавить книги на полку": "Add books to the shelf", "Книги (EPUB, FB2, PDF)": "Books (EPUB, FB2, PDF)", "Все файлы": "All files", "Куда сохранить книгу": "Where to save the book", "Сохранить сюда": "Save here", "Куда выгрузить книги": "Where to export the books", "Выгрузить сюда": "Export here"};
+const L = s => LANG === 'en' && EN_MAIN[s] || s;
+ipcMain.handle('setLang', (_e, l) => { LANG = l === 'en' ? 'en' : 'ru'; return true; });
 
 // ---------- где лежит полка ----------
 const cfgFile = () => path.join(app.getPath('userData'), 'config.json');
@@ -101,7 +106,7 @@ function saveCover(dir, m, cover) {
 
 ipcMain.handle('getRoot', () => { const r = root(); try { if (r && !fs.existsSync(r) && fs.existsSync(path.dirname(r))) fs.mkdirSync(r, { recursive: true }); } catch {} return { root: r, exists: !!(r && fs.existsSync(r)), platform: process.platform }; });
 ipcMain.handle('chooseRoot', async () => {
-  const r = await dialog.showOpenDialog(win, { title: 'Папка для книжной полки', properties: ['openDirectory', 'createDirectory'] });
+  const r = await dialog.showOpenDialog(win, { title: L('Папка для книжной полки'), properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;
   const c = readCfg(); c.root = r.filePaths[0]; writeCfg(c); ROOT = r.filePaths[0];
   return ROOT;
@@ -120,8 +125,8 @@ ipcMain.handle('findByHash', (_e, sha) => {
   return null;
 });
 ipcMain.handle('pickBooks', async () => {
-  const r = await dialog.showOpenDialog(win, { title: 'Добавить книги на полку', properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Книги (EPUB, FB2, PDF)', extensions: ['epub', 'fb2', 'pdf', 'zip'] }, { name: 'Все файлы', extensions: ['*'] }] });
+  const r = await dialog.showOpenDialog(win, { title: L('Добавить книги на полку'), properties: ['openFile', 'multiSelections'],
+    filters: [{ name: L('Книги (EPUB, FB2, PDF)'), extensions: ['epub', 'fb2', 'pdf', 'zip'] }, { name: L('Все файлы'), extensions: ['*'] }] });
   return r.canceled ? [] : r.filePaths;
 });
 ipcMain.handle('readFile', (_e, p) => fs.readFileSync(p));
@@ -187,7 +192,7 @@ ipcMain.handle('mergeBooks', (_e, { keepId, fromId }) => {
 ipcMain.handle('exportBook', async (_e, { id, formats }) => {
   const dir = bookDir(id); if (!dir) throw new Error('Книга не найдена');
   const m = readBook(dir);
-  const r = await dialog.showOpenDialog(win, { title: 'Куда сохранить книгу', properties: ['openDirectory', 'createDirectory'], buttonLabel: 'Сохранить сюда' });
+  const r = await dialog.showOpenDialog(win, { title: L('Куда сохранить книгу'), properties: ['openDirectory', 'createDirectory'], buttonLabel: L('Сохранить сюда') });
   if (r.canceled || !r.filePaths[0]) return null;
   const done = [];
   for (const fmt of formats) {
@@ -202,7 +207,7 @@ ipcMain.handle('exportBook', async (_e, { id, formats }) => {
 // Выгрузка всей полки в одном формате (для электронных книг): берём только книги, у которых такой формат есть, другой не подставляем
 ipcMain.handle('exportAll', async (_e, { fmt }) => {
   if (!['epub', 'fb2', 'pdf'].includes(fmt)) throw new Error('неизвестный формат');
-  const r = await dialog.showOpenDialog(win, { title: 'Куда выгрузить книги', properties: ['openDirectory', 'createDirectory'], buttonLabel: 'Выгрузить сюда' });
+  const r = await dialog.showOpenDialog(win, { title: L('Куда выгрузить книги'), properties: ['openDirectory', 'createDirectory'], buttonLabel: L('Выгрузить сюда') });
   if (r.canceled || !r.filePaths[0]) return null;
   const out = r.filePaths[0]; let done = 0, skipped = 0; const failed = [];
   for (const b of listBooks()) {
