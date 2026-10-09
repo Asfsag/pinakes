@@ -74,4 +74,6 @@ cd android
 
 [MIT](LICENSE). Author: [Индексон / Indexon](https://index-on.ru). The Cormorant Garamond and Onest fonts are under the SIL OFL; pdf.js is Apache-2.0. Demo screenshots use public-domain books.
 
+**Sound effects** (`desktop/ui/sounds/`) were taken from [zvukogram.com](https://zvukogram.com/category/perelistyivanie-stranits/), which publishes them without a stated license. They are not covered by the MIT license above. If you are the rights holder and want them removed, open an issue and they will be replaced.
+
 Books you add stay on your computer. The app does not upload them and collects no data.
