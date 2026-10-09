@@ -1,0 +1,58 @@
+{
+  "name": "pinakes",
+  "productName": "Пинакес",
+  "version": "1.0.19",
+  "description": "Пинакес — виртуальная книжная полка: EPUB, FB2, PDF, читалка со сгибом страницы",
+  "author": "Индексон",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "epubjs": "^0.3.93",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "3.11.174",
+    "@fontsource/cormorant-garamond": "*",
+    "@fontsource/onest": "*"
+  },
+  "build": {
+    "appId": "ru.index-on.pinakes",
+    "productName": "Пинакес",
+    "artifactName": "Pinakes-${version}-${os}.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": "dir",
+      "icon": "build/icon.png",
+      "identity": null
+    },
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.png",
+      "signExecutable": false
+    },
+    "portable": {
+      "artifactName": "Pinakes.exe"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png",
+      "category": "Office",
+      "executableName": "pinakes",
+      "artifactName": "Pinakes.AppImage"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Asfsag/pinakes.git"
+  }
+}

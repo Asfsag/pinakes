@@ -1,0 +1,35 @@
+/* Телефон: компактная верхняя панель, узкий шкаф, без наведения (касание сразу открывает книгу) */
+html.android,html.android body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.room{height:100dvh}
+.top{flex-wrap:wrap;gap:10px;padding:10px 12px 8px}
+.brand h1{font-size:28px}.logo{width:34px;height:34px}.brand p{display:none}
+.search{order:3;flex:1 1 100%;max-width:none;margin:0}
+.search input{height:40px;font-size:16px}
+.ctl{margin-left:auto;gap:6px;flex-wrap:nowrap}
+select{height:40px;max-width:118px;padding:0 10px;font-size:12.5px}
+.btn{height:40px;padding:0 16px;font-size:13px}.btn.icon{width:40px;padding:0}
+#add{padding:0 14px}
+#mOpen,#mRoot{display:none}
+#case{padding:0 8px 40px}
+.count{font-size:11px;margin-bottom:6px}
+.bookcase{margin:14px auto 0;padding:20px 10px 16px}
+.bookcase::before,.bookcase::after{width:12px}
+.shelf .back{padding:0 6px;height:276px}
+.shelf .board{margin:0 -12px;height:20px}
+.state{top:90px;width:92%;padding:26px 22px}.state h2{font-size:28px}
+@media (hover:none){
+  .book:hover:not(.hover)~.book{transform:none}
+  .book:hover:not(.hover) .b3d{transform:perspective(900px) translateZ(0)}
+  .book:hover:not(.hover) .tip{opacity:0}
+}
+.book .tip{pointer-events:none;bottom:22px;max-width:230px;padding:10px 14px}
+.book .tip b{font-size:17px}
+}
+.sheet h3{font-size:25px}
+.sheet .row{flex-wrap:wrap}.sheet .row .btn{flex:1}
+.menu{right:12px;top:60px;min-width:240px}
+.toast{left:12px;right:12px;bottom:18px;transform:none;font-size:13px;text-align:center}
+#rdl{display:none}
+.reader .rb{padding:0 10px;font-size:12px}
+.reader .rtitle{font-size:14px}
+.reader .toc{width:88vw}

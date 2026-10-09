@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; font-src 'self' data:; frame-src 'self' blob: data:; child-src 'self' blob: data:; connect-src 'self' blob: data:">
+<title>Пинакес</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="room">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="6" width="38" height="4" rx="1.5" fill="currentColor"/><rect x="5" y="38" width="38" height="4" rx="1.5" fill="currentColor"/><path d="M12 10v28M20 10v28M28 10v28M36 10v28" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" opacity=".85"/><path d="M8 6c3-4 29-4 32 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      <div><h1>Пинакес</h1><p>Моя книжная полка</p></div>
+    </div>
+    <label class="search"><input id="q" type="search" placeholder="Найти книгу или автора" spellcheck="false"></label>
+    <div class="ctl">
+      <select id="sort" title="Порядок книг">
+        <option value="added">Недавно добавленные</option>
+        <option value="read">Недавно читал</option>
+        <option value="progress">По прогрессу чтения</option>
+        <option value="author">По автору</option>
+        <option value="title">По названию</option>
+      </select>
+      <button class="btn ghost icon" id="dir" title="Поменять порядок"></button>
+      <button class="btn gold" id="add">Добавить книги</button>
+      <button class="btn ghost icon" id="more" title="Папка полки">⋯</button>
+    </div>
+  </header>
+
+  <main id="case">
+    <div class="count" id="count"></div>
+    <div class="bookcase"><div id="shelves"></div><div class="state hide" id="state"></div></div>
+  </main>
+
+  <div class="menu hide" id="menu">
+    <button id="mMerge">Склеить одинаковые книги</button>
+    <button id="mFill">Заполнить недостающие форматы…</button>
+    <button id="mAll">Выгрузить все книги…</button>
+    <button id="mOpen">Показать папку с книгами</button>
+    <button id="mRoot">Выбрать другую папку полки…</button>
+  </div>
+
+  <div class="toast hide" id="toast"></div>
+  <div class="drop hide" id="drop"><div>Отпустите, чтобы поставить книги на полку</div></div>
+
+  <!-- карточка книги -->
+  <div class="modal hide" id="detail"><div class="bkstage" id="dsheet"></div></div>
+  <!-- выбор формата для скачивания -->
+  <div class="modal hide" id="dl"><div class="sheet small" id="dlsheet"></div></div>
+  <!-- правка -->
+  <div class="modal hide" id="edit"><div class="sheet small" id="esheet"></div></div>
+
+  <!-- читалка -->
+  <div class="reader hide t-sepia" id="reader">
+    <div class="stage" id="stage"></div>
+    <div class="rdim" id="rdim"></div>
+    <div class="rbar" id="rbar">
+      <button class="rb" id="rclose" title="Закрыть (Esc)">← На полку</button>
+      <div class="rtitle" id="rtitle"></div>
+      <div class="rtools">
+        <button class="rb" id="rtoc" title="Оглавление">Оглавление</button>
+        <button class="rb" id="rset" title="Настройки чтения">Аа</button>
+        <button class="rb" id="rdl" title="Скачать эту книгу">Скачать</button>
+      </div>
+    </div>
+    <div class="toc hide" id="toc"></div>
+    <div class="rfoot" id="rfoot"><input type="range" id="rslider" min="0" max="1000" value="0" aria-label="Место в книге"><span id="rpct"></span></div>
+    <div class="rsheet hide" id="rsheet"></div>
+  </div>
+</div>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/epub.min.js"></script>
+<script src="lib/pdf.min.js"></script>
+<script src="util.js"></script>
+<script src="importer.js"></script>
+<script src="convert.js"></script>
+<script src="fb2.js"></script>
+<script src="reader.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
